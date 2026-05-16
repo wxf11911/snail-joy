@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>🐌 小蜗接接乐</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0a1a;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-family: 'Arial', sans-serif;
+}
+.game-wrapper {
+  background: #1a1a2e;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 0 40px rgba(100, 100, 255, 0.15);
+  max-width: 100vw;
+}
+canvas {
+  display: block;
+  border-radius: 12px;
+  cursor: none;
+  max-width: 100%;
+  height: auto !important;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  color: #e0e0e0;
+  font-size: 18px;
+  padding: 0 5px;
+}
+.score-box {
+  background: #16213e;
+  padding: 6px 16px;
+  border-radius: 8px;
+}
+.score { font-weight: bold; color: #ffd700; }
+.highscore { color: #888; font-size: 14px; }
+.controls {
+  margin-top: 10px;
+  text-align: center;
+  color: #555;
+  font-size: 13px;
+}
+.touch-controls {
+  display: none;
+  margin-top: 8px;
+  gap: 8px;
+}
+@media (pointer: coarse) {
+  .game-wrapper { padding: 10px; border-radius: 8px; }
+  .header { font-size: 14px; }
+}
+.touch-btn {
+  width: 48%;
+  padding: 18px 0;
+  font-size: 28px;
+  background: rgba(255,255,255,0.08);
+  border: 2px solid rgba(255,255,255,0.15);
+  border-radius: 12px;
+  color: white;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  transition: background 0.1s;
+}
+.touch-btn:active, .touch-btn.active {
+  background: rgba(255,255,255,0.2);
+}
+@media (pointer: coarse) {
+  .touch-controls { display: flex; justify-content: space-between; }
+  .controls span { display: none; }
+}
+.overlay-wrapper {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+.overlay {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  width: 90%;
+}
+.overlay.show { pointer-events: auto; }
+.overlay h1 { font-size: 7vw; margin-bottom: 10px; }
+.overlay p { color: #e0e0e0; font-size: 3.5vw; margin-bottom: 8px; }
+.overlay .btn {
+  pointer-events: auto;
+  background: #e94560;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  font-size: 4vw;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-top: 15px;
+  transition: transform 0.15s;
+}
+.overlay .btn:hover { transform: scale(1.05); background: #ff6b6b; }
+.overlay .record { color: #ffd700; font-size: 4vw; font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="game-wrapper" style="position:relative">
+  <div class="header">
+    <span>🐌 小蜗接接乐 <span id="levelDisplay" style="color:#ffd700;font-size:14px;background:#16213e;padding:2px 10px;border-radius:6px;margin-left:8px">Lv.1</span></span>
+    <div class="score-box">
+      <span class="score" id="scoreDisplay">0</span>
+      <span class="highscore"> | 🏆 <span id="highScoreDisplay">0</span></span>
+    </div>
+  </div>
+  <div style="position:relative;">
+    <canvas id="gameCanvas" width="600" height="680" style="width:100%;max-width:100%;height:auto"></canvas>
+    <div class="overlay-wrapper">
+      <div class="overlay show" id="startOverlay">
+        <h1 style="color:#fff">🐌 小蜗接接乐</h1>
+        <p>← → 移动小蜗，接住掉落的宝物！</p>
+        <p style="color:#888;font-size:3vw">漏掉一个就 game over 💀</p>
+        <button class="btn" onclick="startGame()">🎮 开始游戏</button>
+      </div>
+    </div>
+    <div class="overlay-wrapper" id="gameOverWrapper" style="display:none">
+      <div class="overlay" id="gameOverOverlay">
+        <h1 style="color:#ff6b6b">💀 游戏结束</h1>
+        <p>最终得分: <span id="finalScore">0</span></p>
+        <p>到达关卡: <span id="finalLevel">1</span> &nbsp; <span id="rankDisplay" style="color:#ffd700"></span></p>
+        <p class="record" id="newRecord" style="display:none">🎉 新纪录！🎉</p>
+        <button class="btn" onclick="startGame()">🔄 再来一局</button>
+      </div>
+    </div>
+  </div>
+  <div class="controls">
+    ← → / A D 移动 &nbsp;|&nbsp; 空格暂停 &nbsp;|&nbsp; R 重新开始
+  </div>
+  <div class="touch-controls">
+    <button class="touch-btn" id="btnLeft" ontouchstart="onTouch('left',true)" ontouchend="onTouch('left',false)" ontouchcancel="onTouch('left',false)">◀</button>
+    <button class="touch-btn" id="btnRight" ontouchstart="onTouch('right',true)" ontouchend="onTouch('right',false)" ontouchcancel="onTouch('right',false)">▶</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const W = 600, H = 680;
+
+let game = null;
+
+// Stars background
+function drawStars(frame) {
+  for (let i = 0; i < 50; i++) {
+    let sx = (i * 137 + i * i * 7) % W;
+    let sy = (i * 89 + i * 13 + frame * 0.2) % (H - 120);
+    let b = 60 + (Math.sin(i * 3.7 + frame * 0.03) + 1) * 90;
+    ctx.fillStyle = `rgb(${b},${b},${b})`;
+    let r = (i % 3) + 1;
+    ctx.beginPath();
+    ctx.arc(sx, sy, r * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// Ground
+function drawGround() {
+  ctx.fillStyle = '#16213e';
+  ctx.fillRect(0, H - 50, W, 50);
+  ctx.strokeStyle = '#0f3460';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, H - 50);
+  ctx.lineTo(W, H - 50);
+  ctx.stroke();
+  for (let i = 0; i < W; i += 25) {
+    let gh = 3 + (i * 7 + 3) % 6;
+    ctx.strokeStyle = '#2d6a4f';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(i, H - 50);
+    ctx.lineTo(i, H - 50 - gh);
+    ctx.stroke();
+  }
+}
+
+function drawSnail(x, y, frame, evolution) {
+  const bob = Math.sin(frame * 0.08) * 2;
+  
+  // Evolution defines size, colors, effects
+  const evo = Math.min(10, Math.max(1, evolution || 1));
+  const sizeScale = 0.6 + evo * 0.09;  // grows with evolution
+  const bodyR = Math.round(12 * sizeScale);
+  const bodyW = Math.round(28 * sizeScale);
+  const shellR = Math.round(20 * sizeScale);
+  
+  // Evolution colors
+  const bodyColors = ['#8ddb8f','#7cd487','#6cbf73','#5aad63','#4a9e56',
+                      '#4a9e56','#3d8e4a','#3d8e4a','#2d7a3a','#1e6b2e'];
+  const shellColors = ['#d4b48a','#c9a67e','#c4956a','#b8855e','#ac7552',
+                       '#c49050','#d4a040','#e0b030','#e8c020','#f0d010'];
+  const accentColors = ['#e8d5b0','#dcc09a','#d4a574','#c88a5a','#bc7048',
+                        '#d4a040','#e0b030','#e8c020','#f0d010','#ffcc00'];
+  
+  ctx.fillStyle = bodyColors[evo-1];
+  ctx.strokeStyle = '#3a7a40';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(x - Math.round(5*sizeScale), y + bob, bodyW, bodyR, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  
+  // Shell
+  ctx.fillStyle = shellColors[evo-1];
+  ctx.strokeStyle = evo >= 8 ? (evo >= 9 ? '#ffd700' : '#b08040') : '#8b6f47';
+  ctx.lineWidth = evo >= 9 ? 3 : 2;
+  ctx.beginPath();
+  ctx.arc(x + Math.round(2*sizeScale), y - Math.round(2*sizeScale) + bob, shellR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  
+  // Shell highlight (grows with evo)
+  ctx.fillStyle = accentColors[evo-1];
+  ctx.beginPath();
+  ctx.arc(x - Math.round(2*sizeScale), y - Math.round(8*sizeScale) + bob, Math.round(shellR * 0.45), 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Shell patterns based on evolution
+  ctx.strokeStyle = evo >= 9 ? '#ffaa00' : '#8b6f47';
+  ctx.lineWidth = evo >= 7 ? 2 : 1.5;
+  if (evo >= 3) {
+    // Spiral pattern
+    ctx.beginPath();
+    ctx.arc(x - Math.round(2*sizeScale), y - Math.round(8*sizeScale) + bob, 
+            Math.round(shellR * 0.25), 0.5, Math.PI * 1.5);
+    ctx.stroke();
+  }
+  if (evo >= 5) {
+    // Outer ring
+    ctx.beginPath();
+    ctx.arc(x + Math.round(2*sizeScale), y - Math.round(2*sizeScale) + bob, 
+            shellR * 0.7, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  if (evo >= 7) {
+    // Stars on shell
+    for (let i = 0; i < evo - 5; i++) {
+      const sa = i * 1.2 + frame * 0.02;
+      const sx = x + Math.round(2*sizeScale) + Math.round(shellR * 0.5 * Math.cos(sa));
+      const sy = y - Math.round(2*sizeScale) + bob + Math.round(shellR * 0.5 * Math.sin(sa));
+      ctx.fillStyle = '#ffd700';
+      ctx.font = `${8 + evo}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.fillText('⭐', sx, sy+3);
+    }
+  }
+  
+  // Evolution glow effect (from level 6+)
+  if (evo >= 6) {
+    ctx.shadowColor = ['#4a9e56','#4a9e56','#3d8e4a','#ffd700','#ff8800'][evo-6];
+    ctx.shadowBlur = 5 + (evo - 6) * 3;
+    ctx.beginPath();
+    ctx.arc(x + Math.round(2*sizeScale), y - Math.round(2*sizeScale) + bob, shellR + 4, 0, Math.PI * 2);
+    ctx.strokeStyle = ctx.shadowColor;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+  
+  // Evolution 10: Majestic wings
+  if (evo >= 9) {
+    const wingBob = Math.sin(frame * 0.1) * 3;
+    for (let side of [-1, 1]) {
+      ctx.fillStyle = evo === 10 ? 'rgba(255, 200, 50, 0.3)' : 'rgba(200, 255, 100, 0.2)';
+      ctx.beginPath();
+      ctx.moveTo(x + side * 8, y - 15 + bob);
+      ctx.quadraticCurveTo(x + side * (35 + wingBob), y - 35 + bob, 
+                          x + side * (20 + wingBob), y - 5 + bob);
+      ctx.fill();
+    }
+  }
+  
+  // Eyes (get bigger and more expressive with evolution)
+  const eyeSize = 3 + Math.floor(evo / 4);
+  const eyeBob = Math.sin(frame * 0.12) * 3;
+  const stalkLen = 12 + evo * 1;
+  for (let side of [-1, 1]) {
+    const ex = x + side * (8 + evo * 0.3);
+    const ey = y - Math.round(stalkLen * sizeScale) + bob + eyeBob;
+    
+    ctx.strokeStyle = bodyColors[evo-1];
+    ctx.lineWidth = 2 + Math.floor(evo / 5);
+    ctx.beginPath();
+    ctx.moveTo(ex, y - Math.round(4*sizeScale) + bob);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+    
+    // Eye white
+    const eyeR = 4 + Math.floor(evo / 3);
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.arc(ex, ey - 2, eyeR, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Pupil
+    ctx.fillStyle = '#222';
+    ctx.beginPath();
+    ctx.arc(ex + side * 1.5, ey - 1, eyeSize, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Eyebrow (determined look at higher levels)
+    if (evo >= 7) {
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(ex - 4, ey - eyeR - 3);
+      ctx.lineTo(ex + 4, ey - eyeR - 1);
+      ctx.stroke();
+    }
+  }
+  
+  // Evolution sparkle trail (level 4+)
+  if (evo >= 4) {
+    const trailColors = ['#8ddb8f','#c4956a','#ffd700','#ff8800','#ff4400',
+                         '#ffd700','#ff6600'];
+    for (let i = 0; i < evo - 3; i++) {
+      const tt = frame * 0.1 + i * 1.5;
+      const tx = x - 25 - i * 3 + Math.sin(tt) * 5;
+      const ty = y + Math.cos(tt * 0.7) * 5;
+      ctx.fillStyle = trailColors[i % trailColors.length];
+      ctx.globalAlpha = 0.3 + 0.2 * Math.sin(tt);
+      ctx.beginPath();
+      ctx.arc(tx, ty + bob, 3 - i * 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+
+const ITEMS = [
+  { emoji: '⭐', color: '#ffd700', value: 10, size: 18 },
+  { emoji: '💎', color: '#00ffff', value: 20, size: 16 },
+  { emoji: '🍎', color: '#ff4444', value: 5, size: 18 },
+  { emoji: '🌟', color: '#ff69b4', value: 15, size: 18 },
+  { emoji: '🍀', color: '#00ff88', value: 8, size: 18 },
+  { emoji: '🎁', color: '#ff00ff', value: 50, size: 20 },
+];
+
+// Audio engine using Web Audio API - free, no files needed!
+class AudioEngine {
+  constructor() {
+    this.ctx = null;
+    this.playing = false;
+    this.bgGain = null;
+    this.oscillators = [];
+  }
+  
+  init() {
+    if (this.ctx) return;
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    this.bgGain = this.ctx.createGain();
+    this.bgGain.gain.value = 0.08;
+    this.bgGain.connect(this.ctx.destination);
+  }
+  
+  startBGM() {
+    this.init();
+    if (this.playing) return;
+    this.playing = true;
+    
+    // Simple happy chord progression
+    const chords = [262, 330, 392, 349, 440, 523, 392, 494, 587, 440, 523, 659];
+    const timings = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+    
+    for (let i = 0; i < chords.length; i += 3) {
+      const startTime = this.ctx.currentTime + i * 0.8;
+      const duration = 2.4;
+      
+      for (let j = 0; j < 3; j++) {
+        if (i + j >= chords.length) break;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = chords[i + j];
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(0.12, startTime + 0.1);
+        gain.gain.linearRampToValueAtTime(0.1, startTime + duration - 0.2);
+        gain.gain.linearRampToValueAtTime(0, startTime + duration);
+        osc.connect(gain);
+        gain.connect(this.bgGain);
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+        this.oscillators.push(osc);
+      }
+    }
+    
+    // Melody on top
+    const melody = [392, 440, 494, 523, 494, 440, 392, 349, 330, 349, 392, 440, 494, 523, 587, 523];
+    for (let i = 0; i < melody.length; i++) {
+      const st = this.ctx.currentTime + i * 0.6;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = melody[i];
+      gain.gain.setValueAtTime(0, st);
+      gain.gain.linearRampToValueAtTime(0.06, st + 0.05);
+      gain.gain.linearRampToValueAtTime(0.04, st + 0.4);
+      gain.gain.linearRampToValueAtTime(0, st + 0.5);
+      osc.connect(gain);
+      gain.connect(this.bgGain);
+      osc.start(st);
+      osc.stop(st + 0.5);
+      this.oscillators.push(osc);
+    }
+  }
+  
+  stopBGM() {
+    this.playing = false;
+    for (const osc of this.oscillators) {
+      try { osc.stop(); } catch(e) {}
+    }
+    this.oscillators = [];
+  }
+  
+  playCatch() {
+    this.init();
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, this.ctx.currentTime);
+    osc.frequency.linearRampToValueAtTime(1320, this.ctx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.2);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.2);
+  }
+  
+  playLevelUp() {
+    this.init();
+    const notes = [523, 659, 784, 1047];
+    for (let i = 0; i < notes.length; i++) {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = notes[i];
+      const st = this.ctx.currentTime + i * 0.1;
+      gain.gain.setValueAtTime(0.12, st);
+      gain.gain.linearRampToValueAtTime(0, st + 0.25);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(st);
+      osc.stop(st + 0.25);
+    }
+  }
+  
+  playGameOver() {
+    this.init();
+    const now = this.ctx.currentTime;
+    const ctx = this.ctx;
+    
+    // Create shared dry/wet for reverb effect
+    // Simple reverb using multiple delays
+    function playWithReverb(sourceNode, dryGain, delayMs) {
+      // Dry path
+      sourceNode.connect(dryGain);
+      dryGain.connect(ctx.destination);
+      
+      // Wet path - 3 echoes with decay
+      const delays = [0.08, 0.18, 0.32];
+      const gains = [0.5, 0.25, 0.1];
+      for (let i = 0; i < delays.length; i++) {
+        const wetGain = ctx.createGain();
+        wetGain.gain.setValueAtTime(gains[i], now + delays[i] + delayMs);
+        wetGain.gain.linearRampToValueAtTime(0, now + delays[i] + 0.5 + delayMs);
+        sourceNode.connect(wetGain);
+        wetGain.connect(ctx.destination);
+      }
+    }
+    
+    function createNoise(duration, delayStart) {
+      const bufSize = Math.floor(ctx.sampleRate * duration);
+      const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) {
+        const env = 1 - (i / bufSize);
+        d[i] = (Math.random() * 2 - 1) * env;
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0, now + delayStart);
+      gain.gain.linearRampToValueAtTime(0.35, now + delayStart + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + delayStart + duration);
+      src.connect(gain);
+      playWithReverb(gain, ctx.createGain(), delayStart);
+      src.start(now + delayStart);
+      src.stop(now + delayStart + duration);
+    }
+    
+    // MAIN EXPLOSION
+    createNoise(0.3, 0);
+    
+    // ECHO 1 (slightly quieter, 0.4s later)
+    createNoise(0.2, 0.4);
+    
+    // ECHO 2 (further away, 0.9s later)
+    createNoise(0.15, 0.9);
+    
+    // SUB-BASS rumble - the deep foundation
+    function createSubBass(freq, delayStart, vol, duration) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 150;
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + delayStart);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.3, now + delayStart + duration * 0.8);
+      gain.gain.setValueAtTime(0, now + delayStart);
+      gain.gain.linearRampToValueAtTime(vol, now + delayStart + 0.03);
+      const holdEnd = now + delayStart + duration * 0.3;
+      gain.gain.setValueAtTime(vol, holdEnd);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + delayStart + duration);
+      osc.connect(filter);
+      filter.connect(gain);
+      playWithReverb(gain, ctx.createGain(), delayStart);
+      osc.start(now + delayStart);
+      osc.stop(now + delayStart + duration + 0.1);
+    }
+    
+    // Main sub bass - deep rumble
+    createSubBass(55, 0, 0.7, 0.6);
+    // Secondary sub - slightly higher for punch
+    createSubBass(90, 0, 0.4, 0.35);
+    
+    // Echo sub bass
+    createSubBass(45, 0.35, 0.35, 0.5);
+    createSubBass(35, 0.8, 0.15, 0.6);
+    
+    // BOOM low frequency with reverb
+    function createBoom(freq, delayStart, vol) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, now + delayStart);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.3, now + delayStart + 0.35);
+      gain.gain.setValueAtTime(0, now + delayStart);
+      gain.gain.linearRampToValueAtTime(vol, now + delayStart + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + delayStart + 0.45);
+      osc.connect(gain);
+      playWithReverb(gain, ctx.createGain(), delayStart);
+      osc.start(now + delayStart);
+      osc.stop(now + delayStart + 0.5);
+    }
+    
+    // Main boom
+    createBoom(70, 0, 0.4);
+    // Boom echo
+    createBoom(50, 0.35, 0.2);
+    // Boom echo 2
+    createBoom(38, 0.8, 0.08);
+    
+    // Glass shatter with reverb
+    for (let i = 0; i < 8; i++) {
+      const shard = ctx.createOscillator();
+      const sg = ctx.createGain();
+      shard.type = 'square';
+      shard.frequency.value = 2000 + Math.random() * 3000;
+      const st = now + 0.05 + Math.random() * 0.15;
+      sg.gain.setValueAtTime(0, st);
+      sg.gain.linearRampToValueAtTime(0.04, st + 0.01);
+      sg.gain.exponentialRampToValueAtTime(0.001, st + 0.2 + Math.random() * 0.2);
+      shard.connect(sg);
+      playWithReverb(sg, ctx.createGain(), st - now);
+      shard.start(st);
+      shard.stop(st + 0.4);
+    }
+    
+    // Sad descending tone (quieter, layered on top)
+    const notes = [523, 494, 440, 392];
+    for (let i = 0; i < notes.length; i++) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.value = notes[i];
+      const st = now + 0.1 + i * 0.15;
+      gain.gain.setValueAtTime(0.06, st);
+      gain.gain.linearRampToValueAtTime(0, st + 0.3);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(st);
+      osc.stop(st + 0.3);
+    }
+  }
+}
+
+let audio = new AudioEngine();
+
+class Game {
+  constructor() {
+    this.score = 0;
+    this.highScore = parseInt(localStorage.getItem('snailHighScore')) || 0;
+    this.level = 1;
+    this.gameOver = false;
+    this.paused = false;
+    this.snailX = W / 2;
+    this.snailY = H - 75;
+    this.items = [];
+    this.frame = 0;
+    this.dropCounter = 0;
+    this.keys = {};
+    this.running = false;
+    this.levelUpFlash = 0;
+    this.gameOverFrame = 0;
+    this.deathParticles = [];
+    
+    document.addEventListener('keydown', (e) => {
+      this.keys[e.key] = true;
+      if (e.key === ' ') { e.preventDefault(); this.togglePause(); }
+      if (e.key === 'r' || e.key === 'R') this.restart();
+    });
+    document.addEventListener('keyup', (e) => { this.keys[e.key] = false; });
+  }
+  
+  start() {
+    this.running = true;
+    this.loop();
+  }
+  
+  togglePause() {
+    if (!this.gameOver) this.paused = !this.paused;
+  }
+  
+  restart() {
+    this.score = 0;
+    this.level = 1;
+    this.levelUpFlash = 0;
+    this.gameOver = false;
+    this.gameOverFrame = 0;
+    this.deathParticles = [];
+    this.paused = false;
+    this.snailX = W / 2;
+    this.items = [];
+    this.frame = 0;
+    document.getElementById('gameOverWrapper').style.display = 'none';
+    document.getElementById('gameOverOverlay').classList.remove('show');
+  }
+  
+  dropItem() {
+    if (this.items.length >= 6) return;
+    const t = Math.random() < 0.08 ? 5 : Math.floor(Math.random() * 5);
+    const item = { ...ITEMS[t] };
+    item.x = 20 + Math.random() * (W - 40);
+    item.y = -20;
+    item.speed = (0.2 + this.level * 0.35) + Math.random() * (0.4 + this.level * 0.2);
+    this.items.push(item);
+  }
+  
+  update() {
+    if (this.paused) return;
+    
+    // Death animation: let particles play out before freezing
+    if (this.gameOver) {
+      this.gameOverFrame++;
+      for (let i = this.deathParticles.length - 1; i >= 0; i--) {
+        const p = this.deathParticles[i];
+        // Store trail
+        if (p.trail) {
+          p.trail.push({x: p.x, y: p.y});
+          if (p.trail.length > 8) p.trail.shift();
+        }
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vx *= 0.97;  // air resistance
+        p.vy += p.isEmber ? -0.02 : 0.15;  // embers float up, sparks fall
+        p.life -= 0.02;
+        p.size *= 0.995;
+        if (p.life <= 0 || p.size < 0.5) this.deathParticles.splice(i, 1);
+      }
+      return;  // Don't update game logic, but particles animate
+    }
+    
+    this.frame++;
+    this.dropCounter++;
+    
+    // Move snail (faster!)
+    if (this.keys['ArrowLeft'] || this.keys['a'] || this.keys['A'] || touchLeft) this.snailX -= 10;
+    if (this.keys['ArrowRight'] || this.keys['d'] || this.keys['D'] || touchRight) this.snailX += 10;
+    this.snailX = Math.max(35, Math.min(W - 35, this.snailX));
+    
+    // Drop items
+    if (this.dropCounter >= Math.max(8, 42 - this.level * 3)) {
+      this.dropItem();
+      this.dropCounter = 0;
+    }
+    
+    // Move items
+    for (let i = this.items.length - 1; i >= 0; i--) {
+      const item = this.items[i];
+      item.y += item.speed;
+      
+      // Collision
+      const dx = item.x - this.snailX;
+      const dy = item.y - this.snailY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      if (dist < 45) {
+        this.score += item.value;
+        this.items.splice(i, 1);
+        audio.playCatch();
+        // Level up check
+        const newLevel = Math.min(10, Math.floor(this.score / 20) + 1);
+        if (newLevel > this.level) {
+          this.level = newLevel;
+          this.levelUpFlash = 30;
+          audio.playLevelUp();
+        }
+        // Show + effect
+        this.showPlus(item.x, item.y, `+${item.value}`, item.color);
+        continue;
+      }
+      
+      if (item.y > H) {
+        this.gameOver = true;
+        this.gameOverFrame = 0;
+        this.items = [];
+        // 💥 FIRE SPARKS EXPLOSION!
+        for (let i = 0; i < 60; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 1 + Math.random() * 10;
+          const isEmber = i > 35;
+          this.deathParticles.push({
+            x: this.snailX + (Math.random()-0.5)*10,
+            y: this.snailY + (Math.random()-0.5)*10,
+            vx: Math.cos(angle) * speed * (isEmber ? 0.4 + Math.random()*0.8 : 0.6 + Math.random()*1.5),
+            vy: Math.sin(angle) * speed * (isEmber ? -2 + Math.random()*2 : 0.3 + Math.random()*2) - (isEmber ? 4 : 2),
+            life: 1.0,
+            size: isEmber ? 1.5 + Math.random()*2 : 3 + Math.random() * 7,
+            color: isEmber ? 
+              ['#ff4400','#ff6600','#ff8800','#ffaa00'][Math.floor(Math.random()*4)] :
+              ['#ff2200','#ff4400','#ff6600','#ffaa33','#ffdd44','#fff8dc'][Math.floor(Math.random()*6)],
+            isEmber: isEmber,
+            trail: []
+          });
+        }
+        // Embers that float up
+        for (let i = 0; i < 20; i++) {
+          this.deathParticles.push({
+            x: this.snailX + (Math.random()-0.5)*20,
+            y: this.snailY + (Math.random()-0.5)*10,
+            vx: (Math.random()-0.5) * 1.5,
+            vy: -2 - Math.random() * 4,
+            life: 1.0,
+            size: 1 + Math.random() * 2.5,
+            color: ['#ff6600','#ff8800','#ffaa33','#ffcc66'][Math.floor(Math.random()*4)],
+            isEmber: true,
+            trail: []
+          });
+        }
+        audio.playGameOver();
+        return;
+      }
+    }
+  }
+  
+  showPlus(x, y, text, color) {
+    const span = document.createElement('span');
+    span.textContent = text;
+    span.style.cssText = `position:absolute;left:${x+20}px;top:${y+20}px;color:${color};font-size:22px;font-weight:bold;pointer-events:none;transition:all 0.8s ease;opacity:1`;
+    document.querySelector('.game-wrapper').appendChild(span);
+    requestAnimationFrame(() => {
+      span.style.transform = 'translateY(-40px)';
+      span.style.opacity = '0';
+    });
+    setTimeout(() => span.remove(), 900);
+  }
+  
+  draw() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(0, 0, W, H);
+    
+    drawStars(this.frame);
+    drawGround();
+    drawSnail(this.snailX, this.snailY, this.frame, this.level);
+    
+    // Draw items
+    for (const item of this.items) {
+      ctx.font = `${item.size}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      // Glow
+      ctx.shadowColor = item.color;
+      ctx.shadowBlur = 10;
+      ctx.fillText(item.emoji, item.x, item.y);
+      ctx.shadowBlur = 0;
+    }
+    
+    // Score & Level
+    document.getElementById('scoreDisplay').textContent = this.score;
+    document.getElementById('highScoreDisplay').textContent = this.highScore;
+    document.getElementById('levelDisplay').textContent = `Lv.${this.level}`;
+    
+    // Level up flash
+    if (this.levelUpFlash > 0) {
+      this.levelUpFlash--;
+      const flash = Math.floor(this.levelUpFlash / 5) % 2 === 0;
+      if (flash) {
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.15)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = '#ffd700';
+        ctx.font = 'bold 36px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(`⬆ 第 ${this.level} 关！`, W/2, H/2 - 30);
+        ctx.font = '18px Arial';
+        const evoNames = ['🐣','🐣','🐌','🐌✨','🐌💪','🐌🔥','🐌⚡','🐌👑','🐌🌟','🐌🐉'];
+        ctx.fillText(`${evoNames[this.level-1]} 进化 · ${this.level}阶形态`, W/2, H/2 + 45);
+        const msgs = {
+          2: '🔵 初级：宝物掉更快了 · 小蜗开始长大',
+          3: '🟢 初级+：数量增多 · 壳上出现花纹',
+          4: '🟡 中级：双重难度 · 小蜗开始发光',
+          5: '🟠 中级+：速度提升 · 外壳变厚',
+          6: '🔴 高级：速度大增 · 小蜗觉醒光芒',
+          7: '🟣 高级+：越来越密 · 壳上出现星纹',
+          8: '⚫ 精英：极限挑战 · 小蜗长出眉毛',
+          9: '💀 地狱：撑住！ · 展开能量翅膀',
+          10: '👑 传说：最终形态 · 龙王降临！',
+        };
+        ctx.fillText(msgs[this.level] || '难度提升！加油！', W/2, H/2 + 15);
+      }
+    }
+    
+    // Pause overlay
+    if (this.paused) {
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = 'white';
+      ctx.font = '36px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('⏸ 已暂停', W/2, H/2);
+    }
+    
+    // Game over with dramatic effects
+    if (this.gameOver) {
+      // 🔥 FIRE SPARKS with trails
+      ctx.shadowBlur = 0;
+      for (const p of this.deathParticles) {
+        // Draw trail
+        if (p.trail && p.trail.length > 1) {
+          for (let j = 1; j < p.trail.length; j++) {
+            const alpha = (j / p.trail.length) * p.life * 0.4;
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = p.color;
+            const ts = p.size * (j / p.trail.length) * p.life * 0.5;
+            ctx.beginPath();
+            ctx.arc(p.trail[j].x, p.trail[j].y, Math.max(1, ts), 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        // Draw particle with glow
+        const alpha = p.life;
+        ctx.globalAlpha = alpha;
+        
+        // Outer glow
+        ctx.fillStyle = p.isEmber ? '#ff4400' : '#ffaa00';
+        ctx.globalAlpha = alpha * 0.2;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * 2.5 * p.life, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = alpha;
+        
+        // Core
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.isEmber ? '#ff6600' : '#ffaa00';
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, Math.max(1, p.size * p.life), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+      // Extra bright core sparks for big particles
+      for (const p of this.deathParticles) {
+        if (p.size > 4 && p.life > 0.5) {
+          ctx.fillStyle = '#fff8dc';
+          ctx.globalAlpha = p.life * 0.5;
+          ctx.shadowColor = '#ffffff';
+          ctx.shadowBlur = 8;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, Math.max(1, p.size * p.life * 0.3), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+      }
+      ctx.globalAlpha = 1;
+      
+      // Screen flash on first game over frames
+      if (this.gameOverFrame < 15) {
+        const flashAlpha = 0.4 * (1 - this.gameOverFrame / 15);
+        ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
+        ctx.fillRect(0, 0, W, H);
+      }
+      
+      // Screen shake effect (first 10 frames)
+      if (this.gameOverFrame < 10) {
+        const shake = (10 - this.gameOverFrame) * 2;
+        ctx.save();
+        ctx.translate(
+          Math.sin(this.gameOverFrame * 3) * shake,
+          Math.cos(this.gameOverFrame * 2.5) * shake
+        );
+        // Red vignette
+        const vigAlpha = 0.15 * (1 - this.gameOverFrame / 10);
+        ctx.fillStyle = `rgba(255, 0, 0, ${vigAlpha})`;
+        ctx.fillRect(-10, -10, W+20, H+20);
+        ctx.restore();
+      }
+      
+      // 💀 + GAME OVER exploding together from frame 0!
+      {
+        const explosion = Math.min(1, this.gameOverFrame / 15);
+        const scale = 0.3 + explosion * 1.5;  // starts small, explodes big
+        const alpha = Math.min(1, explosion * 1.5);
+        
+        // Red explosion ring
+        if (explosion < 0.8) {
+          const ringSize = explosion * 200;
+          ctx.strokeStyle = `rgba(255, 50, 50, ${0.4 * (1 - explosion)})`;
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(W/2, H/2 - 140, ringSize, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.strokeStyle = `rgba(255, 150, 50, ${0.3 * (1 - explosion)})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(W/2, H/2 - 140, ringSize * 0.7, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        
+        // 💀 skull with shockwave scaling
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        const skullSize = Math.round(65 * scale);
+        
+        // Glow
+        ctx.shadowColor = '#ff4400';
+        ctx.shadowBlur = 20 + (1 - explosion) * 30;
+        ctx.font = `bold ${skullSize}px Arial`;
+        ctx.fillStyle = `rgba(255, 50, 50, ${alpha})`;
+        ctx.fillText('💀', W/2, H/2 - 140);
+        ctx.shadowBlur = 0;
+        
+        // White outline effect
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.3 * alpha})`;
+        ctx.lineWidth = 2;
+        ctx.strokeText('💀', W/2, H/2 - 140);
+        
+        // GAME OVER text appears right beside the skull
+        const gameOverAlpha = Math.min(1, Math.max(0, (explosion - 0.1) * 2));
+        ctx.font = `bold ${Math.round(30 + 10 * scale)}px Arial`;
+        ctx.fillStyle = `rgba(255, 80, 80, ${gameOverAlpha})`;
+        ctx.shadowColor = '#ff0000';
+        ctx.shadowBlur = 15;
+        ctx.fillText('GAME OVER', W/2, H/2 - 70);
+        ctx.shadowBlur = 0;
+        
+        ctx.restore();
+      }
+      
+      // Show overlay after death animation plays out
+      if (this.gameOverFrame > 25 && this.deathParticles.length === 0) {
+        if (this.score > this.highScore) {
+          this.highScore = this.score;
+          localStorage.setItem('snailHighScore', this.highScore);
+        }
+        document.getElementById('finalScore').textContent = this.score;
+        document.getElementById('finalLevel').textContent = this.level;
+        const evoRanks = {1:'🐣 幼体',2:'🐣 成长体',3:'🐌 初级体',4:'🐌✨ 发光体',5:'🐌💪 坚壳体',6:'🐌🔥 觉醒体',7:'🐌⚡ 星纹体',8:'🐌👑 王者体',9:'🐌🌟 圣光体',10:'🐌🐉 龙王体'};
+        document.getElementById('rankDisplay').textContent = evoRanks[this.level] || '🐉 龙王体+';
+        const evoIcon = ['🥚','🐣','🐌','🐌✨','🐌💪','🐌🔥','🐌⚡','🐌👑','🐌🌟','🐌🐉'];
+        document.getElementById('finalLevel').innerHTML = `${this.level} ${evoIcon[this.level-1]}`;
+        document.getElementById('newRecord').style.display = 
+          this.score > 0 && this.score >= this.highScore ? 'block' : 'none';
+        document.getElementById('gameOverWrapper').style.display = 'flex';
+        document.getElementById('gameOverOverlay').classList.add('show');
+      }
+    }
+  }
+  
+  loop() {
+    if (!this.running) return;
+    this.update();
+    this.draw();
+    requestAnimationFrame(() => this.loop());
+  }
+}
+
+// Touch controls
+let touchLeft = false, touchRight = false;
+function onTouch(dir, down) {
+  if (dir === 'left') touchLeft = down;
+  if (dir === 'right') touchRight = down;
+  document.getElementById('btnLeft').classList.toggle('active', touchLeft);
+  document.getElementById('btnRight').classList.toggle('active', touchRight);
+  // Also trigger game start on first touch if on mobile
+  if (down && !game) startGame();
+}
+
+function startGame() {
+  audio.startBGM();
+  document.getElementById('startOverlay').style.display = 'none';
+  document.getElementById('startOverlay').classList.remove('show');
+  document.getElementById('gameOverWrapper').style.display = 'none';
+  document.getElementById('gameOverOverlay').classList.remove('show');
+  
+  if (game) game.running = false;
+  game = new Game();
+  game.start();
+}
+
+// Auto-start on load
+window.onload = () => {
+  document.getElementById('startOverlay').style.display = 'flex';
+};
+</script>
+</body>
+</html>
