@@ -3,44 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<link rel="manifest" href="manifest.json">
 <title>🐌 小蜗接接乐</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-html, body {
-  background: #1a1a2e;
+body {
+  background: #0a0a1a;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
   min-height: 100vh;
-  min-height: 100dvh;
-  margin: 0;
-  padding: 0;
   font-family: 'Arial', sans-serif;
-  -webkit-touch-callout: none !important;
-  -webkit-user-select: none !important;
-  -moz-user-select: none !important;
-  -ms-user-select: none !important;
-  user-select: none !important;
-  -webkit-tap-highlight-color: transparent !important;
-}
-canvas, .game-wrapper, .overlay, .overlay-wrapper, button, p, span, h1 {
-  -webkit-touch-callout: none !important;
-  -webkit-user-select: none !important;
-  user-select: none !important;
 }
 .game-wrapper {
   background: #1a1a2e;
   border-radius: 16px;
   padding: 20px;
   box-shadow: 0 0 40px rgba(100, 100, 255, 0.15);
-  max-width: 100%;
-  overflow: hidden;
-  width: 100%;
-}
-@keyframes goldPulse {
-  0%, 100% { text-shadow: 0 0 10px #ffd700; }
-  50% { text-shadow: 0 0 30px #ff8800, 0 0 60px #ff4400; }
+  max-width: 100vw;
 }
 canvas {
   display: block;
@@ -48,9 +27,6 @@ canvas {
   cursor: none;
   max-width: 100%;
   height: auto !important;
-  touch-action: none;
-  margin: 0 auto;
-  background: #1a1a2e;
 }
 .header {
   display: flex;
@@ -75,19 +51,34 @@ canvas {
   font-size: 13px;
 }
 .touch-controls {
-  display: flex;
+  display: none;
+  margin-top: 8px;
   gap: 8px;
-  justify-content: space-between;
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  right: 10px;
-  z-index: 10;
 }
 @media (pointer: coarse) {
-  .controls span { display: none; }
-}.touch-btn:active, .touch-btn.active {
+  .game-wrapper { padding: 10px; border-radius: 8px; }
+  .header { font-size: 14px; }
+}
+.touch-btn {
+  width: 48%;
+  padding: 18px 0;
+  font-size: 28px;
+  background: rgba(255,255,255,0.08);
+  border: 2px solid rgba(255,255,255,0.15);
+  border-radius: 12px;
+  color: white;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  transition: background 0.1s;
+}
+.touch-btn:active, .touch-btn.active {
   background: rgba(255,255,255,0.2);
+}
+@media (pointer: coarse) {
+  .touch-controls { display: flex; justify-content: space-between; }
+  .controls span { display: none; }
 }
 .overlay-wrapper {
   position: absolute;
@@ -97,7 +88,6 @@ canvas {
   justify-content: center;
   align-items: center;
   pointer-events: none;
-  z-index: 5;
 }
 .overlay {
   text-align: center;
@@ -107,17 +97,8 @@ canvas {
   align-items: center;
   pointer-events: none;
   width: 90%;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
 }
 .overlay.show { pointer-events: auto; }
-.overlay *, .overlay-wrapper * {
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-  user-select: none;
-}
 .overlay h1 { font-size: 7vw; margin-bottom: 10px; }
 .overlay p { color: #e0e0e0; font-size: 3.5vw; margin-bottom: 8px; }
 .overlay .btn {
@@ -157,20 +138,20 @@ canvas {
     </div>
     <div class="overlay-wrapper" id="gameOverWrapper" style="display:none">
       <div class="overlay" id="gameOverOverlay">
-        <h2 style="color:#aab;font-size:20px;margin-bottom:5px;letter-spacing:4px">— 游 戏 结 束 —</h2>
-        <p style="margin-top:5px"><span id="finalScore" style="color:#ffd700;font-size:32px;animation:goldPulse 1.5s infinite">0</span></p>
-        <p style="color:#667;font-size:14px;margin-top:5px">关卡 <span id="finalLevel" style="color:#8899cc">1</span> &nbsp; <span id="rankDisplay" style="color:#ffd700"></span></p>
+        <h1 style="color:#ff6b6b">💀 游戏结束</h1>
+        <p>最终得分: <span id="finalScore">0</span></p>
+        <p>到达关卡: <span id="finalLevel">1</span> &nbsp; <span id="rankDisplay" style="color:#ffd700"></span></p>
         <p class="record" id="newRecord" style="display:none">🎉 新纪录！🎉</p>
         <button class="btn" onclick="startGame()">🔄 再来一局</button>
       </div>
-  <div class="touch-controls">
-    <button class="touch-btn" id="btnLeft" ontouchstart="onTouch('left',true)" ontouchend="onTouch('left',false)" ontouchcancel="onTouch('left',false)">◀</button>
-    <button class="touch-btn" id="btnRight" ontouchstart="onTouch('right',true)" ontouchend="onTouch('right',false)" ontouchcancel="onTouch('right',false)">▶</button>
-  </div>
     </div>
   </div>
   <div class="controls">
     ← → / A D 移动 &nbsp;|&nbsp; 空格暂停 &nbsp;|&nbsp; R 重新开始
+  </div>
+  <div class="touch-controls">
+    <button class="touch-btn" id="btnLeft" ontouchstart="onTouch('left',true)" ontouchend="onTouch('left',false)" ontouchcancel="onTouch('left',false)">◀</button>
+    <button class="touch-btn" id="btnRight" ontouchstart="onTouch('right',true)" ontouchend="onTouch('right',false)" ontouchcancel="onTouch('right',false)">▶</button>
   </div>
 </div>
 
@@ -388,10 +369,7 @@ class AudioEngine {
   }
   
   init() {
-    if (this.ctx) {
-      if (this.ctx.state === 'suspended') this.ctx.resume();
-      return;
-    }
+    if (this.ctx) return;
     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
     this.bgGain = this.ctx.createGain();
     this.bgGain.gain.value = 0.08;
@@ -504,7 +482,7 @@ class AudioEngine {
       
       // Wet path - 3 echoes with decay
       const delays = [0.08, 0.18, 0.32];
-      const gains = [0.2, 0.08, 0.03];
+      const gains = [0.5, 0.25, 0.1];
       for (let i = 0; i < delays.length; i++) {
         const wetGain = ctx.createGain();
         wetGain.gain.setValueAtTime(gains[i], now + delays[i] + delayMs);
@@ -526,7 +504,7 @@ class AudioEngine {
       src.buffer = buf;
       const gain = ctx.createGain();
       gain.gain.setValueAtTime(0, now + delayStart);
-      gain.gain.linearRampToValueAtTime(0.12, now + delayStart + 0.02);
+      gain.gain.linearRampToValueAtTime(0.35, now + delayStart + 0.02);
       gain.gain.exponentialRampToValueAtTime(0.001, now + delayStart + duration);
       src.connect(gain);
       playWithReverb(gain, ctx.createGain(), delayStart);
@@ -566,13 +544,13 @@ class AudioEngine {
     }
     
     // Main sub bass - deep rumble
-    createSubBass(55, 0, 0.2, 0.5);
+    createSubBass(55, 0, 0.7, 0.6);
     // Secondary sub - slightly higher for punch
-    createSubBass(90, 0, 0.12, 0.3);
+    createSubBass(90, 0, 0.4, 0.35);
     
     // Echo sub bass
-    createSubBass(45, 0.35, 0.1, 0.4);
-    createSubBass(35, 0.8, 0.05, 0.5);
+    createSubBass(45, 0.35, 0.35, 0.5);
+    createSubBass(35, 0.8, 0.15, 0.6);
     
     // BOOM low frequency with reverb
     function createBoom(freq, delayStart, vol) {
@@ -583,7 +561,7 @@ class AudioEngine {
       osc.frequency.exponentialRampToValueAtTime(freq * 0.3, now + delayStart + 0.35);
       gain.gain.setValueAtTime(0, now + delayStart);
       gain.gain.linearRampToValueAtTime(vol, now + delayStart + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + delayStart + 0.4);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + delayStart + 0.45);
       osc.connect(gain);
       playWithReverb(gain, ctx.createGain(), delayStart);
       osc.start(now + delayStart);
@@ -591,11 +569,11 @@ class AudioEngine {
     }
     
     // Main boom
-    createBoom(70, 0, 0.15);
+    createBoom(70, 0, 0.4);
     // Boom echo
-    createBoom(50, 0.35, 0.06);
+    createBoom(50, 0.35, 0.2);
     // Boom echo 2
-    createBoom(38, 0.8, 0.03);
+    createBoom(38, 0.8, 0.08);
     
     // Glass shatter with reverb
     for (let i = 0; i < 8; i++) {
@@ -605,7 +583,7 @@ class AudioEngine {
       shard.frequency.value = 2000 + Math.random() * 3000;
       const st = now + 0.05 + Math.random() * 0.15;
       sg.gain.setValueAtTime(0, st);
-      sg.gain.linearRampToValueAtTime(0.02, st + 0.01);
+      sg.gain.linearRampToValueAtTime(0.04, st + 0.01);
       sg.gain.exponentialRampToValueAtTime(0.001, st + 0.2 + Math.random() * 0.2);
       shard.connect(sg);
       playWithReverb(sg, ctx.createGain(), st - now);
@@ -621,7 +599,7 @@ class AudioEngine {
       osc.type = 'sawtooth';
       osc.frequency.value = notes[i];
       const st = now + 0.1 + i * 0.15;
-      gain.gain.setValueAtTime(0.03, st);
+      gain.gain.setValueAtTime(0.06, st);
       gain.gain.linearRampToValueAtTime(0, st + 0.3);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
@@ -640,6 +618,7 @@ class Game {
     this.level = 1;
     this.lives = 3;
     this.maxLives = 3;
+    this.lifeLostFlash = 0;
     this.gameOver = false;
     this.paused = false;
     this.snailX = W / 2;
@@ -650,7 +629,6 @@ class Game {
     this.keys = {};
     this.running = false;
     this.levelUpFlash = 0;
-    this.lifeLostFlash = 0;
     this.gameOverFrame = 0;
     this.deathParticles = [];
     
@@ -692,7 +670,7 @@ class Game {
     const item = { ...ITEMS[t] };
     item.x = 20 + Math.random() * (W - 40);
     item.y = -20;
-    item.speed = (0.15 + this.level * 0.25) + Math.random() * (0.3 + this.level * 0.12);
+    item.speed = (0.2 + this.level * 0.35) + Math.random() * (0.4 + this.level * 0.2);
     this.items.push(item);
   }
   
@@ -729,7 +707,7 @@ class Game {
     this.snailX = Math.max(35, Math.min(W - 35, this.snailX));
     
     // Drop items
-    if (this.dropCounter >= Math.max(12, 55 - this.level * 2)) {
+    if (this.dropCounter >= Math.max(8, 42 - this.level * 3)) {
       this.dropItem();
       this.dropCounter = 0;
     }
@@ -761,7 +739,6 @@ class Game {
       }
       
       if (item.y > H) {
-        // Deduct a life instead of instant game over
         this.lives--;
         this.items = [];
         this.lifeLostFlash = 20;
@@ -770,37 +747,39 @@ class Game {
         if (this.lives <= 0) {
           this.gameOver = true;
           this.gameOverFrame = 0;
-          for (let i = 0; i < 60; i++) {
+        // 💥 FIRE SPARKS EXPLOSION!
+        for (let i = 0; i < 60; i++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = 1 + Math.random() * 10;
             const isEmber = i > 35;
             this.deathParticles.push({
               x: this.snailX + (Math.random()-0.5)*10,
-              y: this.snailY + (Math.random()-0.5)*10,
-              vx: Math.cos(angle) * speed * (isEmber ? 0.4 + Math.random()*0.8 : 0.6 + Math.random()*1.5),
-              vy: Math.sin(angle) * speed * (isEmber ? -2 + Math.random()*2 : 0.3 + Math.random()*2) - (isEmber ? 4 : 2),
-              life: 1.0,
-              size: isEmber ? 1.5 + Math.random()*2 : 3 + Math.random() * 7,
-              color: isEmber ? 
-                ['#ff4400','#ff6600','#ff8800','#ffaa00'][Math.floor(Math.random()*4)] :
-                ['#ff2200','#ff4400','#ff6600','#ffaa33','#ffdd44','#fff8dc'][Math.floor(Math.random()*6)],
-              isEmber: isEmber,
+            y: this.snailY + (Math.random()-0.5)*10,
+            vx: Math.cos(angle) * speed * (isEmber ? 0.4 + Math.random()*0.8 : 0.6 + Math.random()*1.5),
+            vy: Math.sin(angle) * speed * (isEmber ? -2 + Math.random()*2 : 0.3 + Math.random()*2) - (isEmber ? 4 : 2),
+            life: 1.0,
+            size: isEmber ? 1.5 + Math.random()*2 : 3 + Math.random() * 7,
+            color: isEmber ? 
+              ['#ff4400','#ff6600','#ff8800','#ffaa00'][Math.floor(Math.random()*4)] :
+              ['#ff2200','#ff4400','#ff6600','#ffaa33','#ffdd44','#fff8dc'][Math.floor(Math.random()*6)],
+            isEmber: isEmber,
               trail: []
             });
           }
+          // Embers that float up
           for (let i = 0; i < 20; i++) {
             this.deathParticles.push({
               x: this.snailX + (Math.random()-0.5)*20,
-              y: this.snailY + (Math.random()-0.5)*10,
-              vx: (Math.random()-0.5) * 1.5,
-              vy: -2 - Math.random() * 4,
-              life: 1.0,
-              size: 1 + Math.random() * 2.5,
-              color: ['#ff6600','#ff8800','#ffaa33','#ffcc66'][Math.floor(Math.random()*4)],
-              isEmber: true,
+            y: this.snailY + (Math.random()-0.5)*10,
+            vx: (Math.random()-0.5) * 1.5,
+            vy: -2 - Math.random() * 4,
+            life: 1.0,
+            size: 1 + Math.random() * 2.5,
+            color: ['#ff6600','#ff8800','#ffaa33','#ffcc66'][Math.floor(Math.random()*4)],
+            isEmber: true,
               trail: []
             });
-          }
+        }
           audio.playGameOver();
           return;
         }
@@ -846,21 +825,20 @@ class Game {
     document.getElementById('highScoreDisplay').textContent = this.highScore;
     document.getElementById('levelDisplay').textContent = `Lv.${this.level}`;
     
-    // Lives display (❤️)
-    var livesStr = '';
-    for (var li = 0; li < this.lives; li++) livesStr += '❤️';
-    for (var li = this.lives; li < this.maxLives; li++) livesStr += '🖤';
+    // Lives display
     if (!this.gameOver) {
-      ctx.font = '24px Arial';
+      var lvStr = '';
+      for (var li = 0; li < this.lives; li++) lvStr += '❤️';
+      for (var li = this.lives; li < this.maxLives; li++) lvStr += '🖤';
+      ctx.font = '20px Arial';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
-      // Flash red when losing a life
       if (this.lifeLostFlash > 0) {
         this.lifeLostFlash--;
         ctx.shadowColor = '#ff0000';
-        ctx.shadowBlur = this.lifeLostFlash > 10 ? 20 : 5;
+        ctx.shadowBlur = 20;
       }
-      ctx.fillText(livesStr, 15, 15);
+      ctx.fillText(lvStr, 15, 15);
       ctx.shadowBlur = 0;
     }
     
@@ -999,20 +977,33 @@ class Game {
           ctx.stroke();
         }
         
-        // Score display with shockwave scaling
+        // 💀 skull with shockwave scaling
         ctx.save();
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         
         const skullSize = Math.round(65 * scale);
         
-        // Score display with explosion effect
-        ctx.font = `bold ${Math.round(36 * scale)}px Arial`;
-        ctx.textAlign = 'center';
-        ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
-        ctx.shadowColor = '#ff8800';
+        // Glow
+        ctx.shadowColor = '#ff4400';
         ctx.shadowBlur = 20 + (1 - explosion) * 30;
-        ctx.fillText(`得分: ${this.score}`, W/2, H/2 - 140);
+        ctx.font = `bold ${skullSize}px Arial`;
+        ctx.fillStyle = `rgba(255, 50, 50, ${alpha})`;
+        ctx.fillText('💀', W/2, H/2 - 140);
+        ctx.shadowBlur = 0;
+        
+        // White outline effect
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.3 * alpha})`;
+        ctx.lineWidth = 2;
+        ctx.strokeText('💀', W/2, H/2 - 140);
+        
+        // GAME OVER text appears right beside the skull
+        const gameOverAlpha = Math.min(1, Math.max(0, (explosion - 0.1) * 2));
+        ctx.font = `bold ${Math.round(30 + 10 * scale)}px Arial`;
+        ctx.fillStyle = `rgba(255, 80, 80, ${gameOverAlpha})`;
+        ctx.shadowColor = '#ff0000';
+        ctx.shadowBlur = 15;
+        ctx.fillText('GAME OVER', W/2, H/2 - 70);
         ctx.shadowBlur = 0;
         
         ctx.restore();
@@ -1097,6 +1088,8 @@ function onTouch(dir, down) {
   });
 })();
 
+
+
 function startGame() {
   audio.startBGM();
   document.getElementById('startOverlay').style.display = 'none';
@@ -1109,19 +1102,9 @@ function startGame() {
   game.start();
 }
 
-// Auto-start game on load (full-screen)
+// Auto-start on load
 window.onload = () => {
-  // Auto-start game immediately
-  startGame();
-  // Request full-screen on touch devices
-  if ('ontouchstart' in window) {
-    document.addEventListener('touchstart', function fs() {
-      var el = document.documentElement;
-      if (el.requestFullscreen) el.requestFullscreen();
-      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-      document.removeEventListener('touchstart', fs);
-    }, { once: true });
-  }
+  document.getElementById('startOverlay').style.display = 'flex';
 };
 </script>
 </body>
