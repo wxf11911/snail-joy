@@ -1049,61 +1049,29 @@ function onTouch(dir, down) {
   document.addEventListener('copy', function(e) { e.preventDefault(); return false; });
   document.addEventListener('cut', function(e) { e.preventDefault(); return false; });
   
-  // Nuclear touch prevention - block ALL default touch behaviors on canvas and game area
-  document.querySelectorAll('button, .overlay, .overlay-wrapper, canvas').forEach(function(el) {
-    el.addEventListener('touchstart', function(e) {
-      e.preventDefault();
-    }, { passive: false });
-    el.addEventListener('touchmove', function(e) {
-      // Only prevent if touching overlay/gameover areas
-      if (e.currentTarget.classList.contains('overlay')) {
-        e.preventDefault();
-      }
-    }, { passive: false });
-  });
-  
-  // Block long press on the entire game container
-  var gameWrapper = document.querySelector('.game-wrapper');
-  if (gameWrapper) {
-    gameWrapper.addEventListener('touchstart', function(e) { e.preventDefault(); }, { passive: false });
-  }
-})();
-
-// Override for game touch buttons - re-add our own handlers after nuclear prevention
-(function() {
-  var btnLeft = document.getElementById('btnLeft');
-  var btnRight = document.getElementById('btnRight');
-  var startX = 0, isTouching = false;
-  
-  // Touch controls via the game canvas
+  // Prevent context menu (long-press) on mobile - BUT allow clicks/buttons to work
+  // Only target the canvas and non-interactive overlay areas
   var gameCanvas = document.getElementById('gameCanvas');
   if (gameCanvas) {
-    gameCanvas.addEventListener('touchstart', function(e) {
-      var touch = e.touches[0];
-      var rect = this.getBoundingClientRect();
-      var x = (touch.clientX - rect.left) / rect.width;
-      isTouching = true;
-      if (x < 0.5) onTouch('left', true);
-      else onTouch('right', true);
-    }, { passive: true });
-    
-    gameCanvas.addEventListener('touchend', function(e) {
-      isTouching = false;
-      onTouch('left', false);
-      onTouch('right', false);
-    }, { passive: true });
-    
-    gameCanvas.addEventListener('touchmove', function(e) {
-      if (!isTouching) return;
-      var touch = e.touches[0];
-      var rect = this.getBoundingClientRect();
-      var x = (touch.clientX - rect.left) / rect.width;
-      onTouch('left', false);
-      onTouch('right', false);
-      if (x < 0.5) onTouch('left', true);
-      else onTouch('right', true);
-    }, { passive: true });
+    // Prevent save-image popup on canvas long-press
+    gameCanvas.addEventListener('contextmenu', function(e) { e.preventDefault(); });
   }
+  
+  // Block long-press on overlays (game-over screen) but NOT on the button inside
+  var overlay = document.getElementById('gameOverOverlay');
+  if (overlay) {
+    // Block context menu within overlay
+    overlay.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+    overlay.addEventListener('selectstart', function(e) { e.preventDefault(); });
+  }
+  
+  // Wrap button clicks to work on mobile properly - use click instead of inline handlers
+  document.querySelectorAll('.btn').forEach(function(btn) {
+    btn.addEventListener('touchstart', function(e) {
+      // Don't prevent default - let the click fire
+      // But prevent text selection
+    }, { passive: true });
+  });
 })();
 
 function startGame() {
