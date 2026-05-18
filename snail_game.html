@@ -137,12 +137,12 @@ canvas {
       </div>
     </div>
     <div class="overlay-wrapper" id="gameOverWrapper" style="display:none">
-      <div class="overlay" id="gameOverOverlay">
-        <h1 style="color:#ff6b6b">💀 游戏结束</h1>
-        <p>最终得分: <span id="finalScore">0</span></p>
-        <p>到达关卡: <span id="finalLevel">1</span> &nbsp; <span id="rankDisplay" style="color:#ffd700"></span></p>
-        <p class="record" id="newRecord" style="display:none">🎉 新纪录！🎉</p>
-        <button class="btn" onclick="startGame()">🔄 再来一局</button>
+      <div class="overlay" id="gameOverOverlay" style="background:rgba(0,0,0,0.75);border-radius:15px;padding:20px;width:80%;max-width:320px">
+        <div style="font-size:80px;line-height:1.2;margin-bottom:5px">💀</div>
+        <p style="margin:3px 0"><span id="finalScore" style="color:#ffd700;font-size:28px;font-weight:bold">0</span></p>
+        <p style="margin:3px 0"><span id="finalLevel" style="color:#fff;font-size:22px">1</span> <span id="rankDisplay" style="color:#ffd700;font-size:20px"></span></p>
+        <p class="record" id="newRecord" style="display:none;color:#ffd700;font-weight:bold;font-size:16px;margin:5px 0">🎉 新纪录！🎉</p>
+        <button class="btn" onclick="startGame()" style="margin-top:10px;font-size:20px;padding:12px 35px">🔄 再来一局</button>
       </div>
     </div>
   </div>
@@ -369,7 +369,7 @@ class AudioEngine {
   }
   
   init() {
-    if (this.ctx) return;
+    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
     this.bgGain = this.ctx.createGain();
     this.bgGain.gain.value = 0.08;
@@ -619,6 +619,8 @@ class Game {
     this.lives = 3;
     this.maxLives = 3;
     this.lifeLostFlash = 0;
+    this.lives = 3;
+    this.maxLives = 3;
     this.gameOver = false;
     this.paused = false;
     this.snailX = W / 2;
@@ -731,7 +733,7 @@ class Game {
         if (newLevel > this.level) {
           this.level = newLevel;
           this.levelUpFlash = 30;
-          audio.playLevelUp();
+          //audio.playLevelUp();
         }
         // Show + effect
         this.showPlus(item.x, item.y, `+${item.value}`, item.color);
@@ -740,10 +742,10 @@ class Game {
       
       if (item.y > H) {
         this.lives--;
-        this.items = [];
+        this.items.splice(i, 1);
         this.lifeLostFlash = 20;
-        audio.playLevelUp();
-        this.dropCounter = -20;
+        //audio.playLevelUp();
+        this.dropCounter = 0;
         if (this.lives <= 0) {
           this.gameOver = true;
           this.gameOverFrame = 0;
@@ -1023,23 +1025,7 @@ class Game {
         ctx.restore();
       }
       
-      // Show overlay after death animation plays out
-      if (this.gameOverFrame > 25 && this.deathParticles.length === 0) {
-        if (this.score > this.highScore) {
-          this.highScore = this.score;
-          localStorage.setItem('snailHighScore', this.highScore);
-        }
-        document.getElementById('finalScore').textContent = this.score;
-        document.getElementById('finalLevel').textContent = this.level;
-        const evoRanks = {1:'🐣 幼体',2:'🐣 成长体',3:'🐌 初级体',4:'🐌✨ 发光体',5:'🐌💪 坚壳体',6:'🐌🔥 觉醒体',7:'🐌⚡ 星纹体',8:'🐌👑 王者体',9:'🐌🌟 圣光体',10:'🐌🐉 龙王体'};
-        document.getElementById('rankDisplay').textContent = evoRanks[this.level] || '🐉 龙王体+';
-        const evoIcon = ['🥚','🐣','🐌','🐌✨','🐌💪','🐌🔥','🐌⚡','🐌👑','🐌🌟','🐌🐉'];
-        document.getElementById('finalLevel').innerHTML = `${this.level} ${evoIcon[this.level-1]}`;
-        document.getElementById('newRecord').style.display = 
-          this.score > 0 && this.score >= this.highScore ? 'block' : 'none';
-        document.getElementById('gameOverWrapper').style.display = 'flex';
-        document.getElementById('gameOverOverlay').classList.add('show');
-      }
+
     }
   }
   
@@ -1050,6 +1036,19 @@ class Game {
     requestAnimationFrame(() => this.loop());
   }
 }
+// Show game over overlay
+function showGameOver(score, level, highScore) {
+  document.getElementById('finalScore').textContent = score;
+  document.getElementById('finalLevel').textContent = level;
+  var er = {1:'🐣 幼体',2:'🐣 成长体',3:'🐌 初级体',4:'🐌✨ 发光体',5:'🐌💪 坚壳体',6:'🐌🔥 觉醒体',7:'🐌⚡ 星纹体',8:'🐌👑 王者体',9:'🐌🌟 圣光体',10:'🐌🐉 龙王体'};
+  document.getElementById('rankDisplay').textContent = er[level] || '🐉 龙王体+';
+  var ei = ['🥚','🐣','🐌','🐌✨','🐌💪','🐌🔥','🐌⚡','🐌👑','🐌🌟','🐌🐉'];
+  document.getElementById('finalLevel').innerHTML = level + ' ' + (ei[level-1] || '🐉');
+  document.getElementById('newRecord').style.display = score > 0 && score >= highScore ? 'block' : 'none';
+  document.getElementById('gameOverWrapper').style.display = 'flex';
+  document.getElementById('gameOverOverlay').classList.add('show');
+}
+
 
 // Touch controls
 let touchLeft = false, touchRight = false;
