@@ -641,6 +641,8 @@ class Game {
     this.score = 0;
     this.highScore = parseInt(localStorage.getItem('snailHighScore')) || 0;
     this.level = 1;
+    this.lives = 3;
+    this.maxLives = 3;
     this.gameOver = false;
     this.paused = false;
     this.snailX = W / 2;
@@ -651,6 +653,7 @@ class Game {
     this.keys = {};
     this.running = false;
     this.levelUpFlash = 0;
+    this.lifeLostFlash = 0;
     this.gameOverFrame = 0;
     this.deathParticles = [];
     
@@ -692,7 +695,7 @@ class Game {
     const item = { ...ITEMS[t] };
     item.x = 20 + Math.random() * (W - 40);
     item.y = -20;
-    item.speed = (0.2 + this.level * 0.35) + Math.random() * (0.4 + this.level * 0.2);
+    item.speed = (0.15 + this.level * 0.25) + Math.random() * (0.3 + this.level * 0.12);
     this.items.push(item);
   }
   
@@ -729,7 +732,7 @@ class Game {
     this.snailX = Math.max(35, Math.min(W - 35, this.snailX));
     
     // Drop items
-    if (this.dropCounter >= Math.max(8, 42 - this.level * 3)) {
+    if (this.dropCounter >= Math.max(12, 55 - this.level * 2)) {
       this.dropItem();
       this.dropCounter = 0;
     }
@@ -761,11 +764,17 @@ class Game {
       }
       
       if (item.y > H) {
-        this.gameOver = true;
-        this.gameOverFrame = 0;
+        this.lives--;
         this.items = [];
-        // 💥 FIRE SPARKS EXPLOSION!
-        for (let i = 0; i < 60; i++) {
+        // Flash red for lost life
+        this.lifeLostFlash = 20;
+        audio.playLevelUp();
+        this.dropCounter = -20;  // Brief pause after losing life
+        if (this.lives <= 0) {
+          this.gameOver = true;
+          this.gameOverFrame = 0;
+          // 💥 FIRE SPARKS EXPLOSION!
+          for (let i = 0; i < 60; i++) {
           const angle = Math.random() * Math.PI * 2;
           const speed = 1 + Math.random() * 10;
           const isEmber = i > 35;
@@ -840,6 +849,24 @@ class Game {
     document.getElementById('scoreDisplay').textContent = this.score;
     document.getElementById('highScoreDisplay').textContent = this.highScore;
     document.getElementById('levelDisplay').textContent = `Lv.${this.level}`;
+    
+    // Lives display (❤️)
+    var livesStr = '';
+    for (var li = 0; li < this.lives; li++) livesStr += '❤️';
+    for (var li = this.lives; li < this.maxLives; li++) livesStr += '🖤';
+    if (!this.gameOver) {
+      ctx.font = '24px Arial';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      // Flash red when losing a life
+      if (this.lifeLostFlash > 0) {
+        this.lifeLostFlash--;
+        ctx.shadowColor = '#ff0000';
+        ctx.shadowBlur = this.lifeLostFlash > 10 ? 20 : 5;
+      }
+      ctx.fillText(livesStr, 15, 15);
+      ctx.shadowBlur = 0;
+    }
     
     // Level up flash
     if (this.levelUpFlash > 0) {
