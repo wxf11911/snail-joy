@@ -781,6 +781,20 @@ class Game {
             });
         }
           audio.playGameOver();
+          // Show game over overlay immediately
+          document.getElementById('finalScore').textContent = this.score;
+          document.getElementById('finalLevel').textContent = this.level;
+          var er = {1:'🐣 幼体',2:'🐣 成长体',3:'🐌 初级体',4:'🐌✨ 发光体',5:'🐌💪 坚壳体',6:'🐌🔥 觉醒体',7:'🐌⚡ 星纹体',8:'🐌👑 王者体',9:'🐌🌟 圣光体',10:'🐌🐉 龙王体'};
+          document.getElementById('rankDisplay').textContent = er[this.level] || '🐉 龙王体+';
+          var ei = ['🥚','🐣','🐌','🐌✨','🐌💪','🐌🔥','🐌⚡','🐌👑','🐌🌟','🐌🐉'];
+          document.getElementById('finalLevel').innerHTML = this.level + ' ' + ei[this.level-1];
+          if (this.score > this.highScore) {
+            this.highScore = this.score;
+            localStorage.setItem('snailHighScore', this.highScore);
+          }
+          document.getElementById('newRecord').style.display = this.score > 0 && this.score >= this.highScore ? 'block' : 'none';
+          document.getElementById('gameOverWrapper').style.display = 'flex';
+          document.getElementById('gameOverOverlay').classList.add('show');
           return;
         }
       }
