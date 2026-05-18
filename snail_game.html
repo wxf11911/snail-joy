@@ -6,16 +6,24 @@
 <title>🐌 小蜗接接乐</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body {
+html, body {
   background: #0a0a1a;
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
   font-family: 'Arial', sans-serif;
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+canvas, .game-wrapper, .overlay, .overlay-wrapper, button, p, span, h1 {
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
 }
 .game-wrapper {
   background: #1a1a2e;
@@ -1025,31 +1033,76 @@ function onTouch(dir, down) {
   if (down && !game) startGame();
 }
 
-// Prevent mobile long-press context menu
+// Prevent ALL mobile context menus and text selection (nuclear option)
 (function() {
+  // Block right-click/context menu everywhere
   document.addEventListener('contextmenu', function(e) { e.preventDefault(); return false; });
-  document.addEventListener('touchstart', function(e) {
-    if (e.touches.length > 0) return; // prevent default but allow our game touches
-  }, { passive: false });
-  // Aggressive long-press prevention: intercept touchend after long press
-  var lastTouchTime = 0;
-  document.addEventListener('touchstart', function(e) {
-    lastTouchTime = Date.now();
-  }, true);
-  document.addEventListener('touchend', function(e) {
-    // If touch lasted > 300ms, prevent any default selection behavior
-    if (Date.now() - lastTouchTime > 300) {
-      e.preventDefault();
-    }
-  }, { passive: false });
   
-  // Aggressive text selection prevention
+  // Block text selection completely
   document.addEventListener('selectstart', function(e) { e.preventDefault(); return false; });
   document.addEventListener('selectionchange', function() {
-    if (window.getSelection && window.getSelection().toString()) {
-      window.getSelection().removeAllRanges();
-    }
+    try { window.getSelection().removeAllRanges(); } catch(e) {}
   });
+  
+  // Block copy/cut events
+  document.addEventListener('copy', function(e) { e.preventDefault(); return false; });
+  document.addEventListener('cut', function(e) { e.preventDefault(); return false; });
+  
+  // Nuclear touch prevention - block ALL default touch behaviors on canvas and game area
+  document.querySelectorAll('button, .overlay, .overlay-wrapper, canvas').forEach(function(el) {
+    el.addEventListener('touchstart', function(e) {
+      e.preventDefault();
+    }, { passive: false });
+    el.addEventListener('touchmove', function(e) {
+      // Only prevent if touching overlay/gameover areas
+      if (e.currentTarget.classList.contains('overlay')) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+  });
+  
+  // Block long press on the entire game container
+  var gameWrapper = document.querySelector('.game-wrapper');
+  if (gameWrapper) {
+    gameWrapper.addEventListener('touchstart', function(e) { e.preventDefault(); }, { passive: false });
+  }
+})();
+
+// Override for game touch buttons - re-add our own handlers after nuclear prevention
+(function() {
+  var btnLeft = document.getElementById('btnLeft');
+  var btnRight = document.getElementById('btnRight');
+  var startX = 0, isTouching = false;
+  
+  // Touch controls via the game canvas
+  var gameCanvas = document.getElementById('gameCanvas');
+  if (gameCanvas) {
+    gameCanvas.addEventListener('touchstart', function(e) {
+      var touch = e.touches[0];
+      var rect = this.getBoundingClientRect();
+      var x = (touch.clientX - rect.left) / rect.width;
+      isTouching = true;
+      if (x < 0.5) onTouch('left', true);
+      else onTouch('right', true);
+    }, { passive: true });
+    
+    gameCanvas.addEventListener('touchend', function(e) {
+      isTouching = false;
+      onTouch('left', false);
+      onTouch('right', false);
+    }, { passive: true });
+    
+    gameCanvas.addEventListener('touchmove', function(e) {
+      if (!isTouching) return;
+      var touch = e.touches[0];
+      var rect = this.getBoundingClientRect();
+      var x = (touch.clientX - rect.left) / rect.width;
+      onTouch('left', false);
+      onTouch('right', false);
+      if (x < 0.5) onTouch('left', true);
+      else onTouch('right', true);
+    }, { passive: true });
+  }
 })();
 
 function startGame() {
